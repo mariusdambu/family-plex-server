@@ -18,8 +18,10 @@ def validate(c):
     if ipaddress.ip_address(c['server_address']).version != 4:
         raise ValueError('This Compose template requires a LAN IPv4 address')
     roots = [c[k] for k in ('apps_root', 'media_root', 'usb_root', 'backup_root')]
-    if len(set(roots)) != 4:
-        raise ValueError('Use four distinct filesystem roots')
+    if c['backup_root'] in (c['apps_root'], c['media_root'], c['usb_root']):
+        raise ValueError('Backup must use a separate filesystem')
+    if c['usb_root'] in (c['apps_root'], c['media_root']):
+        raise ValueError('Removable movies must use a separate filesystem')
     for root in roots:
         p = pathlib.Path(root)
         if not p.is_absolute() or len(p.parts) < 3 or '..' in p.parts:

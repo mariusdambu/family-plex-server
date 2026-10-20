@@ -1,5 +1,7 @@
 # Recovery and rehearsal
 
+For replacement hardware and RAID upgrades, follow [Migration](MIGRATION.md) alongside this guide.
+
 The public repository reconstructs the service architecture, not your personal data, Plex account, passwords or router configuration. To recover these you need a private backup plus your own offline credential and UID/GID records. Regenerate SSH keys on the replacement host.
 
 ## Replace the host

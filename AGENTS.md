@@ -2,6 +2,8 @@
 
 Read README.md and docs/INSTALL.md, ARCHITECTURE.md, AUDIT.md and RECOVERY.md first. Treat this as a reusable reference, not a snapshot of somebody else's disks.
 
+Read docs/MIGRATION.md before hardware replacement or RAID work. Portability is a primary goal. Apps and primary media can share a mounted pool; backup remains independent. Preserve container paths and user IDs when moving data. Do not claim that OS provisioning, RAID creation or full OMV identity restoration is automated.
+
 - Inspect the target host read-only before proposing changes. Identify storage by UUID plus physical model/serial/size; never infer `/dev/sdX` identity from an example.
 - Obtain explicit approval before formatting or deleting data. These scripts do not format disks.
 - Use private config at `/etc/family-plex/config.json`. Never request the user to paste tokens, private keys, full AdGuard YAML or Plex databases into public tools.

@@ -35,7 +35,7 @@ Create a dedicated unprivileged `plexapp` account in OMV. Read its actual IDs us
 Clone this repository; copy its source to `/opt/family-plex` (root-owned, not writable by family users). Create `/etc/family-plex` with mode 700. Copy `config.example.json` there as `config.json`, mode 600. Edit all fields:
 
 - Replace `192.0.2.10` (documentation-only address) with your reserved LAN IPv4 address.
-- Use your own filesystem mountpoints and UUIDs, timezone, and Plex IDs.
+- Use your own filesystem mountpoints and UUIDs, timezone, and Plex IDs. Apps and primary media may share one mounted RAID pool; USB movies and backup use separate filesystems. See [Migration](MIGRATION.md).
 - Generate a dashboard password with `openssl rand -hex 32`; insert it locally without posting it to chat or GitHub.
 - Check the example image digests for your architecture and select newer verified releases when appropriate. `latest` is not an immutable version.
 

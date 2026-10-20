@@ -18,6 +18,13 @@ def sample():
 
 
 class ConfigTests(unittest.TestCase):
+    def test_apps_and_media_can_share_raid_pool(self):
+        c = sample()
+        c['media_root'] = c['apps_root']
+        validate(c)
+        volumes = compose(c)['services']['plex']['volumes']
+        self.assertEqual(volumes[1]['source'], c['apps_root'] + '/Media')
+
     def test_placeholders_rejected(self):
         c = sample()
         c['usb_uuid'] = 'REPLACE_USB_UUID'

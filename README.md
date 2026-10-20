@@ -2,7 +2,7 @@
 
 A small, reproducible home server: OpenMediaVault 8 on Debian 13, Plex and AdGuard Home in Docker, family SMB folders, an optional removable movie disk, a USB backup, and a local administration dashboard.
 
-Start with [Installation](docs/INSTALL.md). Use [Operations](docs/OPERATIONS.md) after setup, [Recovery](docs/RECOVERY.md) after a failure, and [Architecture](docs/ARCHITECTURE.md) to understand the design. [Audit](docs/AUDIT.md) explains the source installation and limitations. [AI handoff](AGENTS.md) defines the rules for future assistants.
+Start with [Installation](docs/INSTALL.md). Use [Migration](docs/MIGRATION.md) to move to another PC or RAID storage, [Operations](docs/OPERATIONS.md) after setup, [Recovery](docs/RECOVERY.md) after a failure, and [Architecture](docs/ARCHITECTURE.md) to understand the design. [Audit](docs/AUDIT.md) explains the source installation and limitations. [AI handoff](AGENTS.md) defines the rules for future assistants.
 
 This repository is a clean reference implementation derived from an operating home server. It contains no personal accounts, credentials, app databases, disk images, media, machine UUIDs, or original exports. It is not an unattended OS installer. Disk selection, OMV shares, passwords, Plex claiming and AdGuard onboarding require explicit local setup.
 
