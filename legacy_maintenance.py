@@ -17,8 +17,7 @@ from urllib.request import Request, urlopen
 import maintenance as m
 
 CSRF = secrets.token_urlsafe(32)
-LABELS = {'update_plex': 'Actualizar Plex', 'update_adguard': 'Actualizar AdGuard',
-          'update_OMV': 'Actualizar OMV', 'reboot_host': 'Reiniciar servidor'}
+LABELS = dict(m.ACTIONS)
 
 
 def admin_session(headers):
@@ -46,19 +45,15 @@ def page(headers):
     if authorized:
         checks = m.checks()
     else:
-        checks = {key: (False, 'Inicia sesion como administrador en OMV y actualiza esta seccion.') for key in LABELS}
+        checks = {key: (False, 'Sign in to OMV as an administrator, then refresh this section.') for key in LABELS}
     forms = []
     for action, label in LABELS.items():
         allowed, reason = checks[action]
-        if 'backup marker is missing' in reason:
-            reason = 'Primero ejecuta una copia consistente desde Backup > Ejecutar ahora.'
-        elif 'last 24 hours' in reason:
-            reason = 'Se requiere una copia consistente de las ultimas 24 horas.'
         disabled = '' if allowed else 'disabled'
         forms.append(f'''<form method="post" action="/maintenance/run">
 <input type="hidden" name="csrf" value="{CSRF}">
 <p><strong>{html.escape(label)}</strong><br>{html.escape(reason)}</p>
-<label><input type="checkbox" name="confirm" value="{action}" required> Confirmo la interrupcion del servicio</label>
+<label><input type="checkbox" name="confirm" value="{action}" required> I confirm the service interruption</label>
 <button name="action" value="{action}" {disabled}>{html.escape(label)}</button></form>''')
     rows = []
     if authorized:
@@ -66,13 +61,13 @@ def page(headers):
             values = (time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime(row['started'])),
                       LABELS.get(row['action'], row['action']), row['state'], row['detail'])
             rows.append('<tr>' + ''.join('<td>' + html.escape(str(value)) + '</td>' for value in values) + '</tr>')
-    return f'''<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
-<title>Mantenimiento PlexServer</title><style>body{{font:16px system-ui;background:#11171b;color:#e7edf0;margin:0;padding:16px}}a{{color:#90d9b1}}.grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}}form{{padding:16px;background:#1a2328;border:1px solid #39454b;border-radius:12px}}button{{display:block;margin-top:12px;padding:10px;font:inherit;border-radius:8px;cursor:pointer}}button:disabled{{opacity:.45;cursor:not-allowed}}td,th{{padding:8px;text-align:left;border-bottom:1px solid #39454b}}table{{width:100%;font-size:14px}}.scroll{{overflow:auto}}</style>
-<h2>Mantenimiento seguro</h2><p>{'Sesion OMV administrativa verificada.' if authorized else 'Se requiere una sesion administrativa de OMV.'}
- <a href="/maintenance/omv" target="_blank" rel="noopener">Abrir OMV</a> · <a href="/maintenance">Actualizar estado</a></p>
-<p>Las operaciones se bloquean con sesiones Plex activas. Las actualizaciones requieren backup consistente de las ultimas 24 horas. No se reinicia el NAS automaticamente al actualizar.</p>
-<div class="grid">{''.join(forms)}</div><h3>Historial</h3><div class="scroll"><table><tr><th>Inicio</th><th>Operacion</th><th>Estado</th><th>Detalle</th></tr>{''.join(rows)}</table></div>
-<p>Si un boton sigue bloqueado tras iniciar sesion en OMV, usa el mismo nombre/IP del servidor en ambas paginas y pulsa Actualizar estado.</p></html>'''
+    return f'''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>PlexServer Maintenance</title><style>body{{font:16px system-ui;background:#11171b;color:#e7edf0;margin:0;padding:16px}}a{{color:#90d9b1}}.grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}}form{{padding:16px;background:#1a2328;border:1px solid #39454b;border-radius:12px}}button{{display:block;margin-top:12px;padding:10px;font:inherit;border-radius:8px;cursor:pointer}}button:disabled{{opacity:.45;cursor:not-allowed}}td,th{{padding:8px;text-align:left;border-bottom:1px solid #39454b}}table{{width:100%;font-size:14px}}.scroll{{overflow:auto}}</style>
+<h2>Safe maintenance</h2><p>{'OMV administrator session verified.' if authorized else 'An OMV administrator session is required.'}
+ <a href="/maintenance/omv" target="_blank" rel="noopener">Open OMV</a> · <a href="/maintenance">Refresh status</a></p>
+<p>Active Plex sessions block operations. Updates require a consistent backup from the last 24 hours. Updates do not automatically reboot the NAS.</p>
+<div class="grid">{''.join(forms)}</div><h3>History</h3><div class="scroll"><table><tr><th>Started</th><th>Action</th><th>State</th><th>Detail</th></tr>{''.join(rows)}</table></div>
+<p>If a button stays blocked after signing in to OMV, use the same server hostname/IP on both pages and refresh status.</p></html>'''
 
 
 def respond(handler, status, body):
@@ -88,7 +83,7 @@ def respond(handler, status, body):
 
 def submit(handler):
     if not admin_session(handler.headers):
-        respond(handler, 403, 'Sesion administrativa OMV requerida. <a href="/maintenance">Volver</a>')
+        respond(handler, 403, 'OMV administrator session required. <a href="/maintenance">Back</a>')
         return
     try:
         origin = handler.headers.get('Origin', '')
@@ -104,12 +99,12 @@ def submit(handler):
         if not hmac.compare_digest(data.get('csrf', [''])[0], CSRF):
             raise ValueError()
     except (ValueError, UnicodeError):
-        respond(handler, 400, 'Solicitud no valida. <a href="/maintenance">Volver</a>')
+        respond(handler, 400, 'Invalid request. <a href="/maintenance">Back</a>')
         return
     m.recover()
     allowed, reason = m.preflight(action)
     if not allowed:
-        respond(handler, 409, html.escape(reason) + ' <a href="/maintenance">Volver</a>')
+        respond(handler, 409, html.escape(reason) + ' <a href="/maintenance">Back</a>')
         return
     # A transient unit survives a restart of the dashboard and supervises its children.
     name = 'plex-maintenance-' + secrets.token_hex(6)
@@ -118,9 +113,9 @@ def submit(handler):
                              '/usr/bin/python3', '/opt/family-plex/ops.py', action],
                             capture_output=True, timeout=15, check=False)
     if result.returncode:
-        respond(handler, 503, 'No se pudo iniciar la operacion. <a href="/maintenance">Volver</a>')
+        respond(handler, 503, 'Could not start the operation. <a href="/maintenance">Back</a>')
         return
-    respond(handler, 202, 'Operacion enviada. <a href="/maintenance">Consultar historial</a>')
+    respond(handler, 202, 'Operation submitted. <a href="/maintenance">View history</a>')
 
 
 def guarded_wd(original, action):
@@ -128,5 +123,5 @@ def guarded_wd(original, action):
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            return False, 'Hay otra operacion de mantenimiento o backup en curso.'
+            return False, 'Another maintenance or backup operation is running.'
         return original(action)
