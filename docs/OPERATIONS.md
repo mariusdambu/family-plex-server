@@ -55,6 +55,14 @@ A restart is first recorded as `reboot_requested`. A later different boot ID mar
 
 Reload the page to see progress. Test blocked states first. Do not click OMV update or restart merely to test that a button exists.
 
+### Adapter for the original dashboard
+
+`legacy_maintenance.py` is an optional adapter for a reviewed production integration. It validates the existing OMV `PHPSESSID` by forwarding only that cookie and the browser User-Agent to the local admin-only `System.noop` RPC. It does not accept or store passwords and rejects missing/expired/non-admin sessions. Sign in to OMV using the same browser, hostname and scheme, then refresh maintenance. Installations using a different session cookie name or authentication integration need separate review. Do not expose the original HTTP dashboard beyond a trusted LAN/VPN.
+
+The adapter dispatches approved actions through transient systemd units, preserving execution if the dashboard restarts. Private `maintenance.compose_files` can map the two service names to existing production Compose files without regenerating volumes. The optional `maintenance.backup_subdir` selects `plexserver-backup` for the legacy layout; its default remains `family-plex-backup`.
+
+`legacy_backup.py` is an optional wrapper for the original `/usr/local/sbin/plexserver-backup.sh`. It holds the common lock, blocks active Plex sessions, stops application writers, runs the original mirror, adds private configuration/source snapshots, restarts previously running applications, and writes the success marker only after completion. This briefly interrupts Plex and household DNS when a backup runs. Deploy it through a reviewed systemd service drop-in, not by replacing arbitrary backup scripts. The wrapper requires the specific legacy paths described in RECOVERY.md and is not enabled on fresh reference installations.
+
 ## Troubleshooting
 
 | Symptom | First check |

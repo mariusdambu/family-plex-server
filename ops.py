@@ -85,6 +85,7 @@ def backup(c):
     for source, _ in sources:
         if not source.is_dir():
             raise RuntimeError('Missing source; refusing mirror deletion: ' + str(source))
+    (destination / 'last-success.json').unlink(missing_ok=True)
     # Stop database writers for a consistent offline appdata copy.
     with stopped(['plex', 'adguardhome']):
         for source, relative in sources:

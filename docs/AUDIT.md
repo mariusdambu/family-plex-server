@@ -1,6 +1,6 @@
 # Architectural audit — 2026-10-20
 
-Scope: read-only inspection of the operating Linux host, comparison with the local documentation, and creation of this clean reference source. No original host identifiers or personal users are published. This reference has not been deployed over the source server.
+Scope on 2026-10-20: read-only inspection of the operating Linux host, comparison with the local documentation, and creation of this clean reference source. No original host identifiers or personal users are published. A subsequent, reviewed integration on 2026-10-21 added the maintenance backend through an adapter while preserving the source dashboard and Compose paths; it did not replace the whole installation with this reference.
 
 ## Observed architecture
 
@@ -29,7 +29,7 @@ The source main media disk was 91% used; capacity needs monitoring. Plex was upd
 
 ## Live-host issues intentionally not repaired by documentation work
 
-The original server still uses its own Spanish dashboard, paths, service names and backup script. The public reference is an improved portable implementation, not a claim that the live host has been upgraded to it. Review the old OMV backup mount record, manual movie fstab entry, dashboard network exposure, live backup consistency, service backup coverage and stale dashboard backup copies before migrating. Avoid applying OMV filesystem deployment until its database and actual mounts agree.
+The original server retains its Spanish dashboard, paths, service names and backup script. The 2026-10-21 adapter protects new maintenance operations with the existing OMV administrator session and wraps the legacy backup with offline application copying and a success marker. Its first consistent backup and restore rehearsal remain operator tasks. Review the old OMV backup mount record, manual movie fstab entry, remaining legacy endpoint exposure and stale backup copies before a full migration. Avoid applying OMV filesystem deployment until its database and actual mounts agree.
 
 ## Validation boundaries
 

@@ -10,4 +10,4 @@ jobs:
           python-version: '3.11'
       - run: python -m unittest discover -s tests -v
       - run: python tests/check_publication.py
-      - run: python -m compileall -q configure.py ops.py dashboard.py maintenance.py
+      - run: python -m compileall -q configure.py ops.py dashboard.py maintenance.py legacy_maintenance.py legacy_backup.py

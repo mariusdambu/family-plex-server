@@ -137,11 +137,22 @@ def backup_ready(config):
     actual = subprocess.check_output(['findmnt', '-n', '-o', 'UUID', '--target', root], text=True, timeout=4).strip()
     if actual != config['backup_uuid']:
         raise RuntimeError('Unexpected backup disk')
-    marker = pathlib.Path(root) / 'family-plex-backup/last-success.json'
-    completed = dt.datetime.fromisoformat(json.loads(marker.read_text())['completed_utc'])
+    subdir = config.get('maintenance', {}).get('backup_subdir', 'family-plex-backup')
+    if subdir not in ('family-plex-backup', 'plexserver-backup'):
+        raise RuntimeError('Unknown backup layout')
+    marker = pathlib.Path(root) / subdir / 'last-success.json'
+    try:
+        completed = dt.datetime.fromisoformat(json.loads(marker.read_text())['completed_utc'])
+    except (OSError, ValueError, KeyError):
+        raise RuntimeError('A consistent backup marker is missing or invalid; run backup first') from None
     age = (dt.datetime.now(dt.timezone.utc) - completed).total_seconds()
     if not 0 <= age <= 86400:
         raise RuntimeError('A successful backup from the last 24 hours is required')
+
+
+def compose_file(action, config):
+    service = 'plex' if action == 'update_plex' else 'adguard'
+    return pathlib.Path(config.get('maintenance', {}).get('compose_files', {}).get(service, str(COMPOSE)))
 
 
 def preflight(action, *, locked=False, config=None, sessions=None, job=None):
@@ -162,7 +173,7 @@ def preflight(action, *, locked=False, config=None, sessions=None, job=None):
             return False, 'Application storage is not mounted'
         if action != 'reboot_host':
             backup_ready(config)
-        if action in ('update_plex', 'update_adguard') and not COMPOSE.is_file():
+        if action in ('update_plex', 'update_adguard') and not compose_file(action, config).is_file():
             return False, 'Generated Compose file is missing'
         if action == 'update_OMV':
             if not pathlib.Path('/usr/sbin/omv-upgrade').is_file():
@@ -173,6 +184,8 @@ def preflight(action, *, locked=False, config=None, sessions=None, job=None):
             if not version.startswith('8.'):
                 return False, 'This update policy supports OMV 8 only'
         return True, 'Ready; checks will be repeated at execution'
+    except RuntimeError as error:
+        return False, str(error)
     except Exception:
         return False, 'Cannot verify Plex token, configuration or recent backup; action blocked'
 
@@ -321,7 +334,7 @@ def execute(action, lock_fd):
                     detail += '; a separate host restart is required'
             else:
                 service = 'plex' if action == 'update_plex' else 'adguard'
-                base = ['docker', 'compose', '-f', str(COMPOSE)]
+                base = ['docker', 'compose', '-f', str(compose_file(action, config))]
                 command(base + ['config', '--quiet'], log, lock_fd)
                 command(base + ['pull', service], log, lock_fd)
                 allowed, reason = preflight(action, locked=True, config=config, job=job)
