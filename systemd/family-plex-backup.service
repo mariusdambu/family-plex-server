@@ -1,0 +1,10 @@
+[Unit]
+Description=Family Plex offline configuration and family backup
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/family-plex/ops.py backup
+UMask=0077
+TimeoutStartSec=6h
+Nice=10

@@ -1,0 +1,16 @@
+{
+  "server_address": "192.0.2.10",
+  "timezone": "Etc/UTC",
+  "plex_uid": 1000,
+  "plex_gid": 100,
+  "apps_root": "/srv/dev-disk-by-uuid-REPLACE_APPS_UUID",
+  "media_root": "/srv/dev-disk-by-uuid-REPLACE_MEDIA_UUID",
+  "usb_root": "/srv/dev-disk-by-uuid-REPLACE_USB_UUID",
+  "usb_uuid": "REPLACE_USB_UUID",
+  "backup_root": "/srv/dev-disk-by-uuid-REPLACE_BACKUP_UUID",
+  "backup_uuid": "REPLACE_BACKUP_UUID",
+  "usb_share": "Movies_USB",
+  "plex_image": "lscr.io/linuxserver/plex@sha256:fc852e4c21359252896227aaafd48d7f052c0142cbe8e1ac3068d060faeb6d56",
+  "adguard_image": "adguard/adguardhome@sha256:aba9e3bf0613be3ba3755e1fc311b126e2c24bec25e18b6483894a88283074f0",
+  "dashboard_token": "REPLACE_WITH_RANDOM_SECRET"
+}
