@@ -22,6 +22,8 @@ The generated Plex bind uses `create_host_path: false`. On first boot, create th
 
 ## Boundaries
 
+`maintenance.py` adds a fixed action allowlist, persistent SQLite history, Plex session checks, individual container updates, explicit restart confirmation and boot-ID recovery. All CLI operations share the same advisory flock. No language model or arbitrary shell execution is involved. The dashboard remains a root administrative interface requiring its existing authentication and SSH tunnel. History confirms defined checks, not full NAS health.
+
 - Dashboard binds to localhost and requires a private token plus CSRF protection. Use an SSH tunnel. It runs as root because mounts and Docker require privilege. Do not publish it directly to the Internet.
 - OMV/SMB/AdGuard stay on a trusted LAN or VPN. Firewall rules must reflect your network. Never expose SMB or Docker's socket publicly.
 - Family account roles are filesystem permissions, not browser or content filtering. Child Plex profiles and parental controls are separate Plex settings.

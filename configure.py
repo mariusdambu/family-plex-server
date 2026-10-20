@@ -39,6 +39,12 @@ def validate(c):
     for key in ('plex_uid', 'plex_gid'):
         if not isinstance(c[key], int) or c[key] <= 0:
             raise ValueError('Set a non-root numeric identity: ' + key)
+    maintenance = c.get('maintenance', {})
+    if not isinstance(maintenance, dict) or not isinstance(maintenance.get('allow_omv_updates', False), bool):
+        raise ValueError('maintenance.allow_omv_updates must be a boolean')
+    probe = maintenance.get('dns_probe', 'example.org')
+    if not isinstance(probe, str) or not re.fullmatch(r'[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?', probe):
+        raise ValueError('maintenance.dns_probe must be a hostname')
     return c
 
 

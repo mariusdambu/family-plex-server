@@ -68,6 +68,8 @@ sudo systemctl enable --now family-plex-backup.timer
 
 From your client use `ssh -L 8090:127.0.0.1:8090 YOUR_ADMIN@YOUR_SERVER`. Open `http://127.0.0.1:8090` and log in as `admin` with the private dashboard token. If port 8090 is used locally, forward 18090 instead and open that port.
 
+Before enabling maintenance, follow the private Plex token, recent-backup and DNS probe setup in [Operations](OPERATIONS.md#checked-maintenance-phase-1). Buttons remain blocked until prerequisites are verified. OMV package updates require a separate private configuration opt-in.
+
 ## Acceptance checklist
 
 - Host boots with movie USB absent; main library works.

@@ -13,6 +13,7 @@ config.example.json    Non-secret configuration template
 configure.py           Validate configuration and generate Compose
 ops.py                 Backup, update, removable disk operations
 dashboard.py           Authenticated loopback dashboard
+maintenance.py         Checked maintenance, DNS verification, persistent history
 systemd/               Service and timer templates
 docs/                  One current manual per topic
 tests/                 Non-destructive checks

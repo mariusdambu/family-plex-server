@@ -11,10 +11,35 @@ import subprocess
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from configure import load
+import maintenance
 
 CSRF = secrets.token_urlsafe(32)
 BUSY = threading.Lock()
 RESULT = 'Ready'
+
+
+def maintenance_html():
+    checks = maintenance.checks()
+    cards = []
+    for action, label in maintenance.ACTIONS.items():
+        allowed, reason = checks[action]
+        disabled = '' if allowed and not BUSY.locked() else 'disabled'
+        explanation = ('Restart disconnects playback, DNS and SMB.' if action == 'reboot_host'
+                       else 'This may interrupt services. A recent backup is required.')
+        cards.append(f'''<form method="post">
+<input type="hidden" name="csrf" value="{CSRF}">
+<p>{html.escape(explanation)} {html.escape(reason)}</p>
+<label><input type="checkbox" name="confirm" value="{action}" required> I confirm this operation</label>
+<button name="action" value="{action}" {disabled}>{html.escape(label)}</button></form>''')
+    rows = []
+    for row in maintenance.history():
+        from datetime import datetime, timezone
+        started = datetime.fromtimestamp(row['started'], timezone.utc).isoformat(timespec='seconds')
+        values = (started, row['action'], row['state'], row['detail'])
+        rows.append('<tr>' + ''.join('<td>' + html.escape(str(value)) + '</td>' for value in values) + '</tr>')
+    return ('<section><h2>Maintenance</h2>' + ''.join(cards) +
+            '<h2>Recent operations (UTC)</h2><table><tr><th>Started</th><th>Action</th><th>State</th><th>Detail</th></tr>' +
+            ''.join(rows) + '</table></section>')
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -41,7 +66,7 @@ class Handler(BaseHTTPRequestHandler):
 <p>Eject disconnects everyone from the movie USB share and interrupts transfers. Plex restarts briefly. Wait for confirmation before unplugging.</p>
 <form method="post"><input type="hidden" name="csrf" value="{CSRF}">{buttons}</form>
 <p>Operation: {'Running; refresh for the result' if BUSY.locked() else 'Idle'}</p>
-<pre>{html.escape(RESULT)}</pre><p><a href="/">Refresh status</a></p></html>'''
+<pre>{html.escape(RESULT)}</pre>{maintenance_html()}<p><a href="/">Refresh status</a></p></html>'''
         body = page.encode()
         self.send_response(200)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
@@ -62,23 +87,41 @@ class Handler(BaseHTTPRequestHandler):
             action = data.get('action', [''])[0]
             if not hmac.compare_digest(data.get('csrf', [''])[0], CSRF):
                 raise ValueError()
-            if action not in ('usb-mount', 'usb-eject', 'backup'):
+            if action not in {'usb-mount', 'usb-eject', 'backup'} | set(maintenance.ACTIONS):
                 raise ValueError()
+            if action in maintenance.ACTIONS:
+                if data.get('confirm', [''])[0] != action:
+                    raise ValueError()
         except (ValueError, UnicodeError):
             self.send_error(400)
             return
+        if action in maintenance.ACTIONS:
+            maintenance.recover()
+            allowed, reason = maintenance.preflight(action)
+            if not allowed:
+                self.send_error(409, reason)
+                return
         if BUSY.acquire(blocking=False):
             def worker():
                 global RESULT
                 try:
-                    p = subprocess.run(['/usr/bin/python3', str(pathlib.Path(__file__).with_name('ops.py')), action],
-                                       capture_output=True, text=True, timeout=15000)
-                    RESULT = ('Success\n' if p.returncode == 0 else 'Failed; do not unplug\n') + (p.stdout + p.stderr)[-6000:]
+                    if action in maintenance.ACTIONS:
+                        # No dashboard timeout kills a package transaction. CLI owns its lifetime.
+                        p = subprocess.run(['/usr/bin/python3', str(pathlib.Path(__file__).with_name('ops.py')), action],
+                                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+                        RESULT = 'See maintenance history for the verified result.'
+                    else:
+                        p = subprocess.run(['/usr/bin/python3', str(pathlib.Path(__file__).with_name('ops.py')), action],
+                                           capture_output=True, text=True, timeout=15000)
+                        RESULT = ('Success\n' if p.returncode == 0 else 'Failed; do not unplug\n') + (p.stdout + p.stderr)[-6000:]
                 except Exception as error:
                     RESULT = 'Operation failed: ' + str(error)
                 finally:
                     BUSY.release()
             threading.Thread(target=worker, daemon=True).start()
+        else:
+            self.send_error(409, 'Another operation is running')
+            return
         self.send_response(303)
         self.send_header('Location', '/')
         self.end_headers()
@@ -89,4 +132,5 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     load()
+    maintenance.recover()
     ThreadingHTTPServer(('127.0.0.1', 8090), Handler).serve_forever()

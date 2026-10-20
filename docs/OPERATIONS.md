@@ -22,10 +22,38 @@ This is a single mirror with `--delete`. It is not ransomware protection or a ve
 
 1. Complete a backup and record current image digests.
 2. Choose new tags/digests from upstream, edit the private config and regenerate Compose.
-3. Run `sudo python3 /opt/family-plex/ops.py update`.
+3. Run `sudo python3 /opt/family-plex/ops.py update_plex` or `update_adguard` separately, or use the matching dashboard button.
 4. Check `docker ps`, application versions, DNS and playback. Read logs if startup fails.
 
 Pulling a pinned digest alone will not update it. Recreating containers preserves bind-mounted appdata but can migrate its schema. For rollback use the old image **and a matching pre-upgrade appdata backup** where required.
+
+## Checked maintenance (phase 1)
+
+The four closed maintenance actions are `update_plex`, `update_adguard`, `update_OMV` and `reboot_host`. Backup and removable-disk actions remain available separately. The old bulk `update` CLI action is removed so it cannot bypass the new checks. These changes are in the public reference; they do not replace an existing legacy production dashboard automatically.
+
+All maintenance requires a valid Plex session check, including for AdGuard and host restart. Paused sessions also block maintenance. Missing or invalid tokens, unavailable Plex, unexpected responses and mounted-storage failures block execution. A session can still start just after the final check: phase 1 reduces this race but does not establish an exclusive Plex maintenance window.
+
+### One-time private setup
+
+On the target Linux host, create `/etc/family-plex/plex-token` as a root-owned regular file with mode `600`; put only your existing Plex token inside using a local editor. Do not paste the token into chat, a command-line argument, GitHub or the dashboard. The backend reads this file and sends the token in an HTTP header only to local Plex. It is never sent to the browser. No token is included or created automatically by the project.
+
+Container and OMV updates also require the configured backup filesystem, the expected UUID, and a successful reference backup marker from the last 24 hours. The marker is `family-plex-backup/last-success.json`; the original production backup layout does not provide this marker. Do not manufacture one to bypass the requirement. Complete a consistent backup or deliberately migrate the backup workflow first.
+
+Set `maintenance.dns_probe` to a hostname that your AdGuard should resolve to a usable IPv4 address (default `example.org`). After an AdGuard update, both its HTTP interface on port 8080 and a UDP A query sent directly to `server_address:53` must pass. Transaction ID, echoed question, DNS status and a usable answer are checked. This is a basic resolution check, not validation of all DNS policies, upstreams or filtering. A blocked probe or upstream outage prevents success even if the container starts.
+
+OMV updates are disabled until you set `maintenance.allow_omv_updates` to `true` in private config. Review the installed OMV 8 `/usr/sbin/omv-upgrade` script and local update configuration first. The operation invokes that official tool with restrictive arguments (`--yes --no-remove` and preservation of existing conffiles), instead of its permissive default flags. If dependency changes require package removals, it must fail for manual review. It is not a major-release upgrade and does not reboot automatically. HTTP checks for Plex and HTTP/DNS checks for AdGuard run afterwards; other OMV services and package details still need operator verification.
+
+### Confirmation, history and crash recovery
+
+Dashboard maintenance forms require authentication, CSRF validation and an explicit confirmation checkbox whose action must match the submitted action. Direct CLI commands represent the administrator's explicit request. UI checks are repeated by `ops.py` after acquiring the common `family-plex.lock`, and again after image download before container recreation. Only the requested Compose service is recreated.
+
+SQLite history is stored in `/var/lib/family-plex/maintenance.sqlite3`, with individual root-only `operation-N.log` files beside it. The dashboard displays the last 20 records, timestamps in UTC, and generic messages; raw private logs are not served. Files and directories must remain accessible only to root. Logs can include private package/repository information; review and rotate them privately as needed.
+
+On dashboard startup and status refresh, recovery uses boot ID, PID and `/proc` process start time. A record whose executor disappeared is marked `interrupted`; a live executor is preserved. Reconciliation does not run while another operation holds the common lock. Command children inherit that lock so a parent failure does not immediately allow overlapping package operations. A command timeout is `needs_review`: it is not proof that the underlying action stopped, and package transactions are not forcibly killed. Inspect the private log/processes before retrying.
+
+A restart is first recorded as `reboot_requested`. A later different boot ID marks it successful, meaning **a host boot was observed**, not that every application is healthy or that the request caused that boot. If the same boot persists after the executor exits and a two-minute grace period expires, the record is marked interrupted. No restart is triggered during source tests or deployment checks.
+
+Reload the page to see progress. Test blocked states first. Do not click OMV update or restart merely to test that a button exists.
 
 ## Troubleshooting
 

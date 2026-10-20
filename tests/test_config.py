@@ -18,6 +18,12 @@ def sample():
 
 
 class ConfigTests(unittest.TestCase):
+    def test_omv_opt_in_cannot_be_a_truthy_string(self):
+        c = sample()
+        c['maintenance'] = {'allow_omv_updates': 'false'}
+        with self.assertRaises(ValueError):
+            validate(c)
+
     def test_apps_and_media_can_share_raid_pool(self):
         c = sample()
         c['media_root'] = c['apps_root']

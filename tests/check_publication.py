@@ -7,7 +7,7 @@ import sys
 root = pathlib.Path(__file__).resolve().parents[1]
 errors = []
 for path in root.rglob('*'):
-    if '.git' in path.parts or '__pycache__' in path.parts:
+    if '.git' in path.parts or '__pycache__' in path.parts or path.name == '.DS_Store':
         continue
     if path.is_symlink():
         errors.append(str(path.relative_to(root)) + ': symlink not allowed')
@@ -21,7 +21,11 @@ for path in root.rglob('*'):
         errors.append(relative + ': forbidden artifact')
     if path.name in ('config.json', '.env', 'shadow', 'gshadow', 'known_hosts', 'authorized_keys'):
         errors.append(relative + ': private filename')
-    text = path.read_text(errors='strict')
+    try:
+        text = path.read_text(errors='strict')
+    except UnicodeDecodeError:
+        errors.append(relative + ': unexpected binary content')
+        continue
     patterns = [r'-----BEGIN [A-Z ]*PRIVATE KEY-----', r'gh[pousr]_[A-Za-z0-9]{30,}',
                 r'github_pat_[A-Za-z0-9_]{30,}', r'ssh-(?:rsa|ed25519) AAAA[A-Za-z0-9+/]+',
                 r'\$[126y]\$[^\s]{20,}']

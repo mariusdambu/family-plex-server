@@ -10,6 +10,7 @@ import pathlib
 import subprocess
 import sys
 from configure import load, COMPOSE
+import maintenance
 
 
 def run(args, timeout=120, capture=False):
@@ -100,18 +101,19 @@ def backup(c):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['backup', 'usb-mount', 'usb-eject', 'update'])
+    parser.add_argument('action', choices=['backup', 'usb-mount', 'usb-eject', *maintenance.ACTIONS])
     args = parser.parse_args()
     if os.geteuid() != 0:
         raise RuntimeError('Run as root on the Linux server')
     c = load()
-    with open('/run/lock/family-plex.lock', 'w') as lock:
+    maintenance.recover()
+    with open(maintenance.LOCK, 'a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        if args.action == 'backup':
+        if args.action in maintenance.ACTIONS:
+            if not maintenance.execute(args.action, lock.fileno()):
+                raise RuntimeError('Maintenance blocked or failed; inspect dashboard history')
+        elif args.action == 'backup':
             backup(c)
-        elif args.action == 'update':
-            compose('pull')
-            compose('up', '-d')
         else:
             usb(c, 'mount' if args.action == 'usb-mount' else 'eject')
 
