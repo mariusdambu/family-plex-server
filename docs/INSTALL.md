@@ -18,7 +18,7 @@ Use a Compose version supporting long bind syntax and `create_host_path: false`;
 
 ## 2. Prepare storage in OMV
 
-Identify each disk by model, serial and size. Format only disks you explicitly intend to erase. The project does not automate formatting. Use ext4 for apps, media, removable movies and backups to preserve Linux ACLs. Mount the apps, primary media and removable movie disk through OMV Storage > File Systems. Note their UUID paths using `lsblk -f` and `findmnt`.
+Identify each disk by model, serial and size. Format only disks you explicitly intend to erase. The project does not automate formatting. Use ext4 for apps and backups to preserve Linux ACLs. Main media may use an OMV-supported filesystem. For a removable exFAT disk shared with macOS/Windows, use the optional [hotplug setup](REMOVABLE_USB.md) instead of the legacy removable-disk steps below. Mount the apps, primary media and removable movie disk through OMV Storage > File Systems. Note their UUID paths using `lsblk -f` and `findmnt`.
 
 Give the movie disk a persistent UUID mount with `nofail`. Keep the backup device separate. It must be mounted at the configured path before backup; this reference does not silently skip a missing backup. OMV should remain the owner of persistent mounts; do not add competing fstab entries.
 
@@ -37,6 +37,7 @@ Clone this repository; copy its source to `/opt/family-plex` (root-owned, not wr
 - Replace `192.0.2.10` (documentation-only address) with your reserved LAN IPv4 address.
 - Use your own filesystem mountpoints and UUIDs, timezone, and Plex IDs. Apps and primary media may share one mounted RAID pool; USB movies and backup use separate filesystems. See [Migration](MIGRATION.md).
 - Generate a dashboard password with `openssl rand -hex 32`; insert it locally without posting it to chat or GitHub.
+- Leave `usb_hotplug` false for the legacy ext4 setup; enable it only after completing REMOVABLE_USB.md. `adguard_enabled: false` parks DNS as documented in OPERATIONS.md.
 - Check the example image digests for your architecture and select newer verified releases when appropriate. `latest` is not an immutable version.
 
 ```sh
@@ -58,7 +59,7 @@ Create SMB exports through OMV, selecting the relevant shared folders; do not ed
 
 ## 6. Install optional services
 
-Copy the three files from `systemd/` to `/etc/systemd/system/`:
+Copy only the dashboard service and backup service/timer from `systemd/` to `/etc/systemd/system/`. Certificate and USB-parent units are optional and have separate setup requirements:
 
 ```sh
 sudo systemctl daemon-reload
@@ -68,7 +69,7 @@ sudo systemctl enable --now family-plex-backup.timer
 
 From your client use `ssh -L 8090:127.0.0.1:8090 YOUR_ADMIN@YOUR_SERVER`. Open `http://127.0.0.1:8090` and log in as `admin` with the private dashboard token. If port 8090 is used locally, forward 18090 instead and open that port.
 
-Before enabling maintenance, follow the private Plex token, recent-backup and DNS probe setup in [Operations](OPERATIONS.md#checked-maintenance-phase-1). Buttons remain blocked until prerequisites are verified. OMV package updates require a separate private configuration opt-in.
+Before enabling maintenance, follow the private Plex token and DNS probe setup in [Operations](OPERATIONS.md#checked-maintenance-phase-1). Buttons remain blocked until safety prerequisites are verified; backup freshness is advisory. OMV package updates require a separate private configuration opt-in. The optional trusted-network integration is documented separately in [Trusted network](TRUSTED_NETWORK.md).
 
 ## Acceptance checklist
 

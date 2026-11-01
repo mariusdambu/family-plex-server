@@ -10,4 +10,19 @@ jobs:
           python-version: '3.11'
       - run: python -m unittest discover -s tests -v
       - run: python tests/check_publication.py
-      - run: python -m compileall -q configure.py ops.py dashboard.py maintenance.py legacy_maintenance.py legacy_backup.py
+      - run: python -m compileall -q .
+      - name: Validate both Compose profiles without starting services
+        run: |
+          PYTHONPATH=tests python - <<'PY'
+          import json, subprocess
+          from test_config import sample
+          from configure import validate, compose
+          for hotplug in (False, True):
+              c = sample()
+              if hotplug:
+                  c.update(usb_hotplug=True, usb_filesystem='exfat', usb_uuid='ABCD-1234',
+                           usb_parent='/srv/family-plex-usb', usb_root='/srv/family-plex-usb/disk',
+                           adguard_enabled=False)
+              subprocess.run(['docker', 'compose', '-f', '-', 'config', '--quiet'],
+                             input=json.dumps(compose(validate(c))), text=True, check=True)
+          PY

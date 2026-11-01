@@ -1,36 +1,17 @@
-# Architectural audit — 2026-10-20
+# Reference audit — 2026-11-01
 
-Scope on 2026-10-20: read-only inspection of the operating Linux host, comparison with the local documentation, and creation of this clean reference source. No original host identifiers or personal users are published. A subsequent, reviewed integration on 2026-10-21 added the maintenance backend through an adapter while preserving the source dashboard and Compose paths; it did not replace the whole installation with this reference.
+This is an English, parameterized reconstruction reference, not a copy of a private server filesystem. Credentials, device identities, app databases, media, corporate projects and operational inventories are deliberately excluded. Public configuration uses reserved documentation addresses and replaceable placeholders.
 
-## Observed architecture
+## Current boundaries
 
-Debian 13, OMV 8 family, Docker/Compose, LinuxServer Plex and AdGuard Home. Dedicated OS, apps/NVMe and main media disks. A separate removable movie USB disk supplements the main library. Backup moved to a separate flash device. A Python dashboard controls backups and removable storage. Family files are served through OMV-managed Samba shares. Optional remote access uses a VPN.
+- Debian 13 / OMV 8, Docker Compose, LinuxServer Plex and optional AdGuard Home. Register mounts and SMB through OMV; never edit generated Samba files.
+- The default dashboard remains loopback-bound with Basic authentication and CSRF. Password-protected HTTPS, trusted-network policy and private project assets are optional integration modules with explicit instructions; they are not silently enabled on new installs.
+- Maintenance has a closed action allowlist, Plex-session checks, persistent history, boot-ID recovery and HTTP/DNS verification. Backup freshness is advisory. Parked AdGuard cannot be started through its update action.
+- Backups stop active application writers and mirror private appdata/configuration/source. They exclude the OS, installed images and media libraries. Mirrors are not version history or a tested bare-metal image.
+- Legacy removable storage retains its original behavior. Optional hotplug uses an isolated shared parent and read-only slave propagation; a confirmed force eject stops only Plex, never forcibly unmounts filesystems or kills unrelated processes.
+- exFAT supports portability to macOS/Windows but lacks Linux POSIX ACLs. Apps and backup should retain filesystems that preserve Linux ownership/ACLs. Never promise native exFAT formatting or repair support from the reference.
+- Hardware, storage creation, RAID selection, accounts, credentials, library definitions, router/VPN settings and complete restore rehearsal remain operator responsibilities.
 
-The source main media disk was 91% used; capacity needs monitoring. Plex was updated during the operating session. Exact package versions and personal device mappings belong in the private host record, not a reusable public example.
+## Validation
 
-## Findings and reference decisions
-
-| Finding | Impact | Decision in this reference |
-| --- | --- | --- |
-| Duplicated manuals, PDFs and old scripts | Contradictory instructions | One Markdown manual per topic; no historical copies in release |
-| Private keys and full recovery exports alongside docs | Accidental publication | Clean-room public tree; never import original Git history or exports |
-| Hard-coded disks, users and IPs | Cannot reproduce safely elsewhere | Private config with explicit placeholders and validation |
-| Stale old backup UUID in OMV database | Future OMV regeneration may restore obsolete mounts | Record as outstanding live-host drift; review before applying filesystem deployment |
-| Movie USB fstab and OMV entry differ | Two configuration sources | OMV owns mounts on new installs; do not duplicate manual entries |
-| Live source backup copies appdata without stopping writers | Database consistency unproven | Reference performs offline appdata copies |
-| Source script skips missing USB with exit zero | Timer success can hide no backup | Reference fails on missing/wrong filesystem |
-| Mirror uses delete and lacks generations | Deletion propagates | Explain limitation; require separate independent copy |
-| Source omits backup script/timer from recovery set | Incomplete rebuild kit | Reference source/services included; manual installation documented |
-| Privileged source dashboard on all interfaces without auth | LAN users can invoke administration | Reference binds loopback, token authentication and CSRF guard |
-| Nested movie bind under main media path | Empty USB folder confuses SMB browsing | New reference uses separate `/media-usb` container path |
-| Forced SMB disconnect leaves stale Finder mount | Reconnect requires client action | Document eject/reopen; no promise of seamless Finder refresh |
-| Moving USB requires Plex mount refresh | Brief service interruption | Explicit connect/eject with stop/start and normal unmount |
-| Mutable latest image tags | Cannot reproduce exact version | Pin digests in private config and backup deployment records |
-
-## Live-host issues intentionally not repaired by documentation work
-
-The original server retains its Spanish dashboard, paths, service names and backup script. The 2026-10-21 adapter protects new maintenance operations with the existing OMV administrator session and wraps the legacy backup with offline application copying and a success marker. Its first consistent backup and restore rehearsal remain operator tasks. Review the old OMV backup mount record, manual movie fstab entry, remaining legacy endpoint exposure and stale backup copies before a full migration. Avoid applying OMV filesystem deployment until its database and actual mounts agree.
-
-## Validation boundaries
-
-Unit tests check configuration safety and Compose structure. Python compilation, Compose schema validation and a publication scanner check the release. Full hardware recreation, unplug/replug and restore tests on a spare host remain mandatory. No claim of universal hardware compatibility or completed recovery certification is made.
+Run the complete unit suite, publication guard and Compose schema checks for both the default and hotplug/parked configurations. Tests use mocks or temporary data and must not execute production maintenance. A successful source test, transfer or backup marker is not proof of hardware integrity or a complete recovery. Repeat the installation and restore acceptance checklist on spare hardware before relying on it.

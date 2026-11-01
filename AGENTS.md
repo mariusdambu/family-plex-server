@@ -10,7 +10,9 @@ Read docs/MIGRATION.md before hardware replacement or RAID work. Portability is 
 - Register mounts and shares through the installed OMV API/UI; inspect its version and schema. Do not edit generated Samba configuration or invent model identifiers.
 - Stop application writers before backup/restore of databases. Verify mount identity before mirror operations. Never force/lazily unmount removable disks.
 - Respect existing user data, custom ACLs and media library paths. Do not migrate a running host to this reference without a separate reviewed migration plan.
+- Never resurrect content explicitly retired by the owner from defaults, reference documents or historical snapshots. When updating an application, preserve current user edits and review selective migrations for saved drafts/templates.
 - Use only fixed administrative commands in the dashboard. Keep authentication, CSRF protection, loopback binding and root-only configuration permissions.
+  An explicitly owner-approved trusted-network deployment may instead use `network_maintenance.py` as described in docs/TRUSTED_NETWORK.md. Preserve its peer/Host restrictions, same-origin and CSRF checks. Do not silently switch security modes. Backup freshness is advisory for maintenance, not an execution prerequisite.
 - Run `python3 -m unittest discover -s tests -v` and `python3 tests/check_publication.py`. Validate generated Compose on a Linux Docker host. Do not run privileged integration actions on production to test documentation.
 - Report what was actually tested. A successful copy does not prove a recoverable database or complete restore.
 - Keep all public files in English. Keep one current manual per topic. No archives, binaries, generated exports, private history or dependencies in Git.

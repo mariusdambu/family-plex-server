@@ -14,14 +14,20 @@ class LegacyTests(unittest.TestCase):
             self.assertFalse(legacy.admin_session({}))
             call.assert_not_called()
 
+    def test_generic_php_cookie_does_not_authorize_omv(self):
+        with patch.object(legacy, 'urlopen') as call:
+            self.assertFalse(legacy.admin_session({'Cookie': 'PHPSESSID=' + 'a' * 32}))
+            call.assert_not_called()
+
     def test_only_admin_rpc_success_authorizes(self):
         response = Mock()
         response.__enter__ = Mock(return_value=Mock(read=Mock(return_value=b'{"response":"read-only quote","error":null}')))
         response.__exit__ = Mock(return_value=False)
         with patch.object(legacy, 'urlopen', return_value=response) as call:
-            self.assertTrue(legacy.admin_session({'Cookie': 'PHPSESSID=' + 'a' * 32, 'User-Agent': 'Test browser'}))
+            self.assertTrue(legacy.admin_session({'Cookie': 'OPENMEDIAVAULT-SESSIONID=' + 'a' * 32, 'User-Agent': 'Test browser'}))
             request = call.call_args.args[0]
             self.assertEqual(request.full_url, 'http://127.0.0.1/rpc.php')
+            self.assertEqual(request.get_header('Cookie'), 'OPENMEDIAVAULT-SESSIONID=' + 'a' * 32)
             self.assertIn(b'"method": "noop"', request.data)
             self.assertNotIn(b'password', request.data)
 

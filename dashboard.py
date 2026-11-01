@@ -25,7 +25,7 @@ def maintenance_html():
         allowed, reason = checks[action]
         disabled = '' if allowed and not BUSY.locked() else 'disabled'
         explanation = ('Restart disconnects playback, DNS and SMB.' if action == 'reboot_host'
-                       else 'This may interrupt services. A recent backup is required.')
+                       else 'This may interrupt services. A recent backup is recommended, not required.')
         cards.append(f'''<form method="post">
 <input type="hidden" name="csrf" value="{CSRF}">
 <p>{html.escape(explanation)} {html.escape(reason)}</p>
@@ -59,12 +59,13 @@ class Handler(BaseHTTPRequestHandler):
         disk = 'Mounted' if os.path.ismount(c['usb_root']) else 'Unmounted'
         buttons = ''.join(f'<button name="action" value="{action}">{label}</button>' for action, label in [
             ('usb-mount', 'Connect movie USB'), ('usb-eject', 'Eject movie USB'), ('backup', 'Run backup')])
+        force_form = (f'<form method="post"><input type="hidden" name="csrf" value="{CSRF}"><label><input type="checkbox" name="confirm" value="usb-force-eject" required> Stop Plex temporarily and interrupt all playback</label><button name="action" value="usb-force-eject">Force USB eject</button></form>' if c.get('usb_hotplug', False) else '')
         page = f'''<!doctype html><html lang="en"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width"><title>Family Plex</title>
 <style>body{{font:18px system-ui;max-width:48rem;margin:3rem auto;padding:1rem;background:#111820;color:#eee}}button{{padding:1rem;margin:.4rem;cursor:pointer}}pre{{white-space:pre-wrap}}</style>
 <h1>Family Plex</h1><p>Movie USB: {disk}</p>
-<p>Eject disconnects everyone from the movie USB share and interrupts transfers. Plex restarts briefly. Wait for confirmation before unplugging.</p>
-<form method="post"><input type="hidden" name="csrf" value="{CSRF}">{buttons}</form>
+<p>{'Normal eject preserves Plex playback on other disks. Force eject stops only Plex and still requires a successful normal unmount.' if c.get('usb_hotplug', False) else 'Eject disconnects the USB SMB share and briefly restarts Plex.'} Wait for confirmation before unplugging.</p>
+<form method="post"><input type="hidden" name="csrf" value="{CSRF}">{buttons}</form>{force_form}
 <p>Operation: {'Running; refresh for the result' if BUSY.locked() else 'Idle'}</p>
 <pre>{html.escape(RESULT)}</pre>{maintenance_html()}<p><a href="/">Refresh status</a></p></html>'''
         body = page.encode()
@@ -87,7 +88,9 @@ class Handler(BaseHTTPRequestHandler):
             action = data.get('action', [''])[0]
             if not hmac.compare_digest(data.get('csrf', [''])[0], CSRF):
                 raise ValueError()
-            if action not in {'usb-mount', 'usb-eject', 'backup'} | set(maintenance.ACTIONS):
+            if action not in {'usb-mount', 'usb-eject', 'usb-force-eject', 'backup'} | set(maintenance.ACTIONS):
+                raise ValueError()
+            if action == 'usb-force-eject' and (not load().get('usb_hotplug', False) or data.get('confirm', [''])[0] != action):
                 raise ValueError()
             if action in maintenance.ACTIONS:
                 if data.get('confirm', [''])[0] != action:

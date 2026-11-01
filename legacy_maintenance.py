@@ -25,13 +25,13 @@ def admin_session(headers):
     try:
         cookies = SimpleCookie()
         cookies.load(headers.get('Cookie', ''))
-        session = cookies.get('PHPSESSID')
+        session = cookies.get('OPENMEDIAVAULT-SESSIONID')
         if session is None or not 16 <= len(session.value) <= 128:
             return False
         data = json.dumps({'service': 'System', 'method': 'noop', 'params': {},
                            'options': {'updatelastaccess': False}}).encode()
         request = Request('http://127.0.0.1/rpc.php', data=data, headers={
-            'Content-Type': 'application/json', 'Cookie': 'PHPSESSID=' + session.value,
+            'Content-Type': 'application/json', 'Cookie': 'OPENMEDIAVAULT-SESSIONID=' + session.value,
             'User-Agent': headers.get('User-Agent', '')})
         with urlopen(request, timeout=4) as response:
             result = json.loads(response.read(20000))
@@ -63,9 +63,14 @@ def page(headers):
             rows.append('<tr>' + ''.join('<td>' + html.escape(str(value)) + '</td>' for value in values) + '</tr>')
     return f'''<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <title>PlexServer Maintenance</title><style>body{{font:16px system-ui;background:#11171b;color:#e7edf0;margin:0;padding:16px}}a{{color:#90d9b1}}.grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}}form{{padding:16px;background:#1a2328;border:1px solid #39454b;border-radius:12px}}button{{display:block;margin-top:12px;padding:10px;font:inherit;border-radius:8px;cursor:pointer}}button:disabled{{opacity:.45;cursor:not-allowed}}td,th{{padding:8px;text-align:left;border-bottom:1px solid #39454b}}table{{width:100%;font-size:14px}}.scroll{{overflow:auto}}</style>
-<h2>Safe maintenance</h2><p>{'OMV administrator session verified.' if authorized else 'An OMV administrator session is required.'}
+<nav><a href="/">Back to dashboard</a></nav>
+<h2>Safe maintenance</h2>
+<p>A grey button means a safety prerequisite is missing, not that the software is up to date. Each action shows its blocking reason.</p>
+<p>This optional adapter requires an OMV session. For an explicitly approved password-free LAN deployment, see docs/TRUSTED_NETWORK.md.</p>
+<p>{'OMV administrator session verified.' if authorized else 'An OMV administrator session is required.'}
  <a href="/maintenance/omv" target="_blank" rel="noopener">Open OMV</a> · <a href="/maintenance">Refresh status</a></p>
-<p>Active Plex sessions block operations. Updates require a consistent backup from the last 24 hours. Updates do not automatically reboot the NAS.</p>
+<p>Active Plex sessions block operations. A consistent recent backup is recommended but not required. Updates do not automatically reboot the NAS.</p>
+<p>These actions apply configured updates; they do not check whether a newer release is available.</p>
 <div class="grid">{''.join(forms)}</div><h3>History</h3><div class="scroll"><table><tr><th>Started</th><th>Action</th><th>State</th><th>Detail</th></tr>{''.join(rows)}</table></div>
 <p>If a button stays blocked after signing in to OMV, use the same server hostname/IP on both pages and refresh status.</p></html>'''
 

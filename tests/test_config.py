@@ -61,6 +61,34 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual([v['target'] for v in volumes], ['/config', '/media', '/media-usb'])
         self.assertTrue(all(v['bind']['create_host_path'] is False for v in volumes))
 
+    def test_parked_adguard_has_no_restart_or_default_compose_start(self):
+        c = sample()
+        c['adguard_enabled'] = False
+        validate(c)
+        service = compose(c)['services']['adguard']
+        self.assertEqual(service['restart'], 'no')
+        self.assertEqual(service['profiles'], ['parked'])
+        self.assertEqual(len(service['volumes']), 2)
+
+    def test_exfat_hotplug_uses_isolated_parent_and_readonly_slave(self):
+        c = sample()
+        c.update(usb_filesystem='exfat', usb_uuid='ABCD-1234', usb_hotplug=True,
+                 usb_parent='/srv/family-plex-usb', usb_root='/srv/family-plex-usb/disk')
+        validate(c)
+        binding = compose(c)['services']['plex']['volumes'][-1]
+        self.assertEqual(binding['source'], c['usb_parent'])
+        self.assertTrue(binding['read_only'])
+        self.assertEqual(binding['bind']['propagation'], 'rslave')
+        c['usb_root'] = '/srv/unrelated'
+        with self.assertRaises(ValueError):
+            validate(c)
+
+    def test_parking_flag_must_be_boolean(self):
+        c = sample()
+        c['adguard_enabled'] = 'false'
+        with self.assertRaises(ValueError):
+            validate(c)
+
     def test_adguard_first_run_port(self):
         ports = compose(sample())['services']['adguard']['ports']
         self.assertIn('192.0.2.10:3000:3000/tcp', ports)

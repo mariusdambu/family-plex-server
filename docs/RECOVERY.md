@@ -28,8 +28,14 @@ Restore `server/appdata/` to the apps disk's `docker/appdata/` while both contai
 
 ## Source installation compatibility
 
-The original installation used `plexserver-backup/familia/{Familia,Backups}` and `plexserver-backup/server-config/{appdata,docker-compose,dashboard,system}`. These names are not the new reference layout. Map folders explicitly; do not run the new mirror against an old backup until a separate verified copy exists. Its live appdata was copied while applications were running: successful rsync completion does not prove database consistency.
+The original installation used `plexserver-backup/familia/{Familia,Backups}` and `plexserver-backup/server-config/{appdata,docker-compose,dashboard,system}`. These names are not the new reference layout. Map folders explicitly; do not run the new mirror against an old backup until a separate verified copy exists. Historical mirrors may have been copied while applications were running. The optional legacy wrapper now stops writers; neither method alone certifies a complete restore.
 
 ## Recovery test record
 
 Record the test date, host architecture, OS/OMV versions, chosen image digests, source and destination disks, files restored, UID/GID mapping, application startup and playback/DNS results in a private operations log. Source tests alone cannot certify a restore.
+
+## Rebuild optional integrations
+
+Reinstall only integrations selected in your private deployment record: password/session gate and certificate timer (DASHBOARD_LOGIN.md), trusted-network policy (TRUSTED_NETWORK.md), and USB parent service plus OMV mount (REMOVABLE_USB.md). The public defaults do not automatically replace an existing dashboard or recreate private portal projects. Restore those projects and private metadata separately; never publish them as source.
+
+If AdGuard was parked, preserve `adguard_enabled: false` and the household DNS fallback during recovery. The optional parent unit must exist before a hotplug Compose service starts. Recheck mount identity, Plex UID/GID, all prior media binds, normal eject/reconnect and busy refusal. No filesystem formats or repairs are part of these scripts.

@@ -1,0 +1,16 @@
+[Unit]
+Description=Isolated shared parent for removable Plex storage
+DefaultDependencies=no
+After=systemd-remount-fs.service
+Before=docker.service srv-family\x2dplex\x2dusb-disk.mount shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/mount --bind /srv/family-plex-usb /srv/family-plex-usb
+ExecStart=/bin/mount --make-rprivate /srv/family-plex-usb
+ExecStart=/bin/mount --make-rshared /srv/family-plex-usb
+
+[Install]
+WantedBy=multi-user.target

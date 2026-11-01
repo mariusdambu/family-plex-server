@@ -48,6 +48,13 @@ def stopped(names):
 
 
 def usb(c, action):
+    if c.get('usb_hotplug', False):
+        import media_usb
+        result = media_usb.operate({'mount': 'connect', 'eject': 'eject', 'force-eject': 'force-eject'}[action], confirmed=action == 'force-eject', locked=True)
+        if result.get('needs_restart'):
+            raise RuntimeError(result['message'])
+        print(result['message'])
+        return
     root = c['usb_root']
     device = '/dev/disk/by-uuid/' + c['usb_uuid']
     if action == 'mount':
@@ -102,7 +109,7 @@ def backup(c):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['backup', 'usb-mount', 'usb-eject', *maintenance.ACTIONS])
+    parser.add_argument('action', choices=['backup', 'usb-mount', 'usb-eject', 'usb-force-eject', *maintenance.ACTIONS])
     args = parser.parse_args()
     if os.geteuid() != 0:
         raise RuntimeError('Run as root on the Linux server')
@@ -116,7 +123,9 @@ def main():
         elif args.action == 'backup':
             backup(c)
         else:
-            usb(c, 'mount' if args.action == 'usb-mount' else 'eject')
+            if args.action == 'usb-force-eject' and not c.get('usb_hotplug', False):
+                raise RuntimeError('Confirmed force eject requires the hotplug integration')
+            usb(c, 'mount' if args.action == 'usb-mount' else 'force-eject' if args.action == 'usb-force-eject' else 'eject')
 
 
 if __name__ == '__main__':

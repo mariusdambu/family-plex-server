@@ -16,7 +16,7 @@ SMB shares such as `Media`, `Family`, `Archive`, `Drivers` and `Movies_USB` belo
 
 Mounts use filesystem UUIDs, never `/dev/sdc` or another discovery-order name. OMV must own persistent filesystem entries. Never hand-edit the OMV-generated Samba config. Configure `nofail` for removable storage so its absence does not prevent host boot. Hotplug alone does not guarantee mounting; use the explicit mount action.
 
-Docker can keep references to an old mount. Eject stops Plex, closes only the USB SMB share, flushes writes and requests a normal unmount, then starts Plex again. Connect stops Plex, mounts by its configured fstab entry, verifies the filesystem UUID and restarts Plex. Busy unmounts fail safely; forced/lazy unmount is deliberately absent. Existing Finder SMB mounts may need eject/reopen after server-side disconnection.
+The legacy bind setup can keep references to an old mount. Its eject stops Plex, closes only the USB SMB share, flushes writes and requests a normal unmount, then starts Plex again. Connect stops Plex, mounts by its configured fstab entry, verifies the filesystem UUID and restarts Plex. Busy unmounts fail safely; forced/lazy unmount is deliberately absent. Existing Finder SMB mounts may need eject/reopen after server-side disconnection.
 
 The generated Plex bind uses `create_host_path: false`. On first boot, create the required empty `Media` directory under the unmounted USB mountpoint as documented. With USB absent, Plex can start on the main disk; reconnect the USB through the operation so Plex sees its new mount. Never write into that underlying empty directory.
 
@@ -29,3 +29,9 @@ The generated Plex bind uses `create_host_path: false`. On first boot, create th
 - Family account roles are filesystem permissions, not browser or content filtering. Child Plex profiles and parental controls are separate Plex settings.
 - AdGuard being the household DNS creates an availability dependency. Keep a documented router/DNS fallback for maintenance.
 - Pinned container digests and a saved private configuration make redeployment repeatable. OS/package repositories still evolve; record versions at deployment.
+
+## Optional hotplug USB and parked DNS
+
+[Hotplug USB](REMOVABLE_USB.md) uses an isolated shared parent and a read-only `rslave` Docker bind. The child filesystem may be exFAT or ext4. Normal disconnect/reconnect does not restart Plex; a separately confirmed force eject stops only Plex, requests a normal unmount and restarts it in a finally block. Busy handles from other services still block removal. No forced/lazy kernel unmount or process killing is used.
+
+`adguard_enabled: false` adds a non-default Compose profile and disables the restart policy without deleting the service or appdata. Stop an already running container explicitly. Backup restarts only containers that were running before it started; AdGuard updates are blocked while parked and host-update checks skip its deliberately disabled DNS. Update the router and host DNS before parking it.

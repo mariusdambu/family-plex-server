@@ -10,6 +10,8 @@ Server-side disconnect can leave a stale Finder mount. Eject that share on the M
 
 Plex scanning and trash behavior are left to the owner's preferences. A missing USB can make titles unavailable; automatic trash emptying can remove entries. Scan the library after adding/deleting movies; reconnect does not itself guarantee a complete library scan.
 
+For optional exFAT/ext4 hotplug controls, including confirmed force eject, follow [Removable USB](REMOVABLE_USB.md). The legacy commands above retain their existing stop/start behavior.
+
 ## Backup
 
 Mount the configured backup device, then run `sudo python3 /opt/family-plex/ops.py backup` or the dashboard button. This reference stops Plex **and AdGuard** while copying app databases, so household DNS is temporarily unavailable. Schedule the interruption and keep an alternative DNS procedure. A missing device fails visibly instead of returning a false success.
@@ -37,7 +39,7 @@ All maintenance requires a valid Plex session check, including for AdGuard and h
 
 On the target Linux host, create `/etc/family-plex/plex-token` as a root-owned regular file with mode `600`; put only your existing Plex token inside using a local editor. Do not paste the token into chat, a command-line argument, GitHub or the dashboard. The backend reads this file and sends the token in an HTTP header only to local Plex. It is never sent to the browser. No token is included or created automatically by the project.
 
-Container and OMV updates also require the configured backup filesystem, the expected UUID, and a successful reference backup marker from the last 24 hours. The marker is `family-plex-backup/last-success.json`; the original production backup layout does not provide this marker. Do not manufacture one to bypass the requirement. Complete a consistent backup or deliberately migrate the backup workflow first.
+Container and OMV updates do not require a recent backup. A recent, consistent backup is strongly recommended: application upgrades may migrate databases and require matching pre-upgrade data for rollback. The trusted-network adapter reports missing, unavailable or old backup markers as warnings only. Backup execution itself still verifies mount identity and stops database writers.
 
 Set `maintenance.dns_probe` to a hostname that your AdGuard should resolve to a usable IPv4 address (default `example.org`). After an AdGuard update, both its HTTP interface on port 8080 and a UDP A query sent directly to `server_address:53` must pass. Transaction ID, echoed question, DNS status and a usable answer are checked. This is a basic resolution check, not validation of all DNS policies, upstreams or filtering. A blocked probe or upstream outage prevents success even if the container starts.
 
@@ -75,3 +77,14 @@ The adapter dispatches approved actions through transient systemd units, preserv
 | Dashboard unavailable | SSH tunnel, token, `systemctl status family-plex-dashboard` |
 
 Useful commands: `docker logs --tail 50 plex`, `docker logs --tail 50 adguardhome`, `lsblk -f`, `df -h`, `systemctl list-timers family-plex-backup.timer`. Logs can contain personal details: redact before sharing.
+
+## Temporarily park AdGuard without removing it
+
+First move the router and host resolver to working alternative DNS servers; otherwise stopping AdGuard can break name resolution. Set `adguard_enabled` to `false` in private config, regenerate Compose, then run:
+
+```sh
+sudo docker update --restart=no adguardhome
+sudo docker compose -f /etc/family-plex/compose.json stop adguard
+```
+
+Do not run `down`, remove volumes or delete appdata. The generated `parked` profile excludes AdGuard from an ordinary Compose `up` and its restart policy is `no`. Explicitly selecting the service/profile can still start it; review independent watchdogs or scheduled jobs on the target host. To resume, set the flag true, regenerate Compose and run `docker compose -f /etc/family-plex/compose.json up -d --no-deps adguard`; verify HTTP and DNS before restoring router DNS settings.

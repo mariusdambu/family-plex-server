@@ -16,5 +16,9 @@
   "maintenance": {
     "allow_omv_updates": false,
     "dns_probe": "example.org"
-  }
+  },
+  "adguard_enabled": true,
+  "usb_filesystem": "ext4",
+  "usb_hotplug": false,
+  "usb_parent": "/srv/family-plex-usb"
 }

@@ -77,6 +77,12 @@ class MaintenanceTests(unittest.TestCase):
             m.recover()
         self.assertEqual(m.history()[0]['state'], 'running')
 
+    def test_parked_adguard_cannot_be_started_by_update(self):
+        allowed, reason = m.preflight('update_adguard', locked=True,
+                                      config={'adguard_enabled': False}, sessions=0)
+        self.assertFalse(allowed)
+        self.assertIn('parked', reason)
+
     def test_unknown_action_rejected(self):
         with self.assertRaises(ValueError):
             m.execute('anything_from_browser', -1)
@@ -136,9 +142,11 @@ class MaintenanceTests(unittest.TestCase):
         allowed, _ = m.preflight('update_plex', locked=True, config={'apps_root': '/irrelevant'}, sessions=1)
         self.assertFalse(allowed)
 
-    def test_missing_backup_blocks_updates(self):
-        with patch.object(m.os.path, 'ismount', return_value=True), patch.object(m, 'backup_ready', side_effect=OSError):
-            self.assertFalse(m.preflight('update_adguard', locked=True, config={'apps_root': '/apps'}, sessions=0)[0])
+    def test_missing_backup_does_not_block_updates(self):
+        with patch.object(m.os.path, 'ismount', return_value=True), patch.object(m, 'backup_ready', side_effect=OSError) as backup, \
+             patch.object(pathlib.Path, 'is_file', return_value=True):
+            self.assertTrue(m.preflight('update_adguard', locked=True, config={'apps_root': '/apps'}, sessions=0)[0])
+            backup.assert_not_called()
 
     def test_sessions_starting_during_pull_prevent_recreation(self):
         with patch.object(m, 'load', return_value={}), patch.object(m, 'process_identity', return_value='123'), \

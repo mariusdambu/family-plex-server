@@ -25,6 +25,13 @@ class DashboardTests(unittest.TestCase):
         handler.send_error.assert_called_once_with(400)
         preflight.assert_not_called()
 
+    def test_force_eject_requires_explicit_matching_confirmation(self):
+        handler = self.handler(f'csrf={dashboard.CSRF}&action=usb-force-eject'.encode())
+        with patch.object(dashboard, 'load', return_value={'usb_hotplug': True}), patch.object(dashboard.subprocess, 'run') as run:
+            handler.do_POST()
+        handler.send_error.assert_called_once_with(400)
+        run.assert_not_called()
+
     def test_csrf_rejected_before_operations(self):
         handler = self.handler(b'csrf=invalid&action=reboot_host&confirm=reboot_host')
         with patch.object(dashboard.maintenance, 'preflight') as preflight:

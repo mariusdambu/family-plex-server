@@ -166,13 +166,13 @@ def preflight(action, *, locked=False, config=None, sessions=None, job=None):
         if any(row['id'] != job for row in pending):
             return False, 'A pending operation needs completion or recovery'
         config = config or load()
+        if action == 'update_adguard' and not config.get('adguard_enabled', True):
+            return False, 'AdGuard is parked; re-enable it before updating'
         count = plex_sessions() if sessions is None else sessions
         if count:
             return False, f'Plex has {count} active session(s), including paused sessions'
         if not os.path.ismount(config['apps_root']):
             return False, 'Application storage is not mounted'
-        if action != 'reboot_host':
-            backup_ready(config)
         if action in ('update_plex', 'update_adguard') and not compose_file(action, config).is_file():
             return False, 'Generated Compose file is missing'
         if action == 'update_OMV':
@@ -187,7 +187,7 @@ def preflight(action, *, locked=False, config=None, sessions=None, job=None):
     except RuntimeError as error:
         return False, str(error)
     except Exception:
-        return False, 'Cannot verify Plex token, configuration or recent backup; action blocked'
+        return False, 'Cannot verify Plex token or configuration; action blocked'
 
 
 def checks():
@@ -328,8 +328,9 @@ def execute(action, lock_fd):
                 detail = 'OMV upgrade tool completed; services need verification'
                 # Package success alone does not demonstrate DNS/playback recovery.
                 wait_ready('update_plex', config)
-                wait_ready('update_adguard', config)
-                detail = 'OMV updates completed; Plex HTTP and AdGuard HTTP/DNS passed'
+                if config.get('adguard_enabled', True):
+                    wait_ready('update_adguard', config)
+                detail = 'OMV updates completed; Plex HTTP passed; AdGuard parked' if not config.get('adguard_enabled', True) else 'OMV updates completed; Plex HTTP and AdGuard HTTP/DNS passed'
                 if pathlib.Path('/var/run/reboot-required').exists():
                     detail += '; a separate host restart is required'
             else:

@@ -6,7 +6,7 @@ Portability is a primary project goal. Reinstall the operating system on the rep
 
 CPU, motherboard, RAM, network adapter, OS disk, data disk count and filesystem UUIDs may all change. The reference targets Linux hosts supported by Debian/OMV, Docker and the selected images. Check image architecture support before choosing ARM hardware or moving between CPU architectures. GPU transcoding and hardware-specific devices require separate Plex configuration; this template does not promise automatic GPU migration.
 
-The existing applications use ordinary bind-mounted directories. Their destination paths are configuration values, not embedded machine identities. Recreate the same internal container paths (`/config`, `/media`, `/media-usb`) so Plex library definitions remain meaningful. The source installation used `/media/USB` instead of `/media-usb`; either keep that original bind destination on migration or deliberately edit and rescan its USB library.
+The existing applications use ordinary bind-mounted directories. Their destination paths are configuration values, not embedded machine identities. Recreate the same internal container paths (`/config`, `/media`, `/media-usb`) so Plex library definitions remain meaningful. The optional hotplug layout uses `/media-usb/disk/Movies` and `/media-usb/disk/Kids`. Preserve the actual recorded paths during migration or edit and rescan the affected library deliberately.
 
 ## Prepare before hardware fails
 
@@ -17,7 +17,7 @@ Keep these **outside the server**, privately and with a recent verification date
 3. Disk role/UUID map, router reservation/DNS settings and credentials needed for Plex/OMV/VPN.
 4. A checkout of this repository and an offline copy of essential dependencies if Internet access might be unavailable.
 
-The reference mirror excludes movie files. If the old media disks fail with no other copy, the repository cannot recover those movies. A flash backup device is one failure domain, not the only copy of irreplaceable files. The production installation audit also flags that its current appdata backup is live rather than quiesced; fix that separately before treating it as a guaranteed recovery source.
+The reference mirror excludes movie files. If the old media disks fail with no other copy, the repository cannot recover those movies. A flash backup device is one failure domain, not the only copy of irreplaceable files. Always quiesce database writers for appdata backup. A successful mirror marker is not proof that a complete restore was rehearsed.
 
 ## Scenario A: old PC fails, data disks survive
 

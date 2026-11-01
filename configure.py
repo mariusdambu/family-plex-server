@@ -29,9 +29,24 @@ def validate(c):
         for other in roots:
             if root != other and p in pathlib.Path(other).parents:
                 raise ValueError('Disk roots must not be nested')
+    for key in ('adguard_enabled', 'usb_hotplug'):
+        if not isinstance(c.get(key, True if key == 'adguard_enabled' else False), bool):
+            raise ValueError(key + ' must be a boolean')
+    filesystem = c.get('usb_filesystem', 'ext4')
+    if filesystem not in ('ext4', 'exfat'):
+        raise ValueError('usb_filesystem must be ext4 or exfat')
     for key in ('usb_uuid', 'backup_uuid'):
-        if not re.fullmatch(r'[0-9a-fA-F-]{36}', c[key]):
-            raise ValueError('Expected an ext4 UUID: ' + key)
+        pattern = r'[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}' if key == 'usb_uuid' and filesystem == 'exfat' else r'[0-9a-fA-F-]{36}'
+        if not re.fullmatch(pattern, c[key]):
+            raise ValueError('Invalid filesystem UUID: ' + key)
+    if c.get('usb_hotplug', False):
+        parent = pathlib.Path(c['usb_parent'])
+        if not parent.is_absolute() or len(parent.parts) < 3 or '..' in parent.parts or pathlib.Path(c['usb_root']) != parent / 'disk':
+            raise ValueError('Hotplug requires usb_root = usb_parent/disk')
+        for key in ('apps_root', 'media_root', 'backup_root'):
+            other = pathlib.Path(c[key])
+            if parent == other or parent in other.parents or other in parent.parents:
+                raise ValueError('USB parent must not overlap other storage roots')
     if len(c['dashboard_token']) < 32:
         raise ValueError('Dashboard token must have at least 32 characters')
     if not re.fullmatch(r'[A-Za-z0-9_-]+', c['usb_share']):
@@ -56,7 +71,7 @@ def compose(c):
     def bind(source, target):
         return {'type': 'bind', 'source': source, 'target': target,
                 'bind': {'create_host_path': False}}
-    return {'name': 'family-plex', 'services': {
+    result = {'name': 'family-plex', 'services': {
         'plex': {'image': c['plex_image'], 'container_name': 'plex',
                  'network_mode': 'host', 'restart': 'unless-stopped',
                  'environment': {'PUID': str(c['plex_uid']), 'PGID': str(c['plex_gid']),
@@ -73,6 +88,15 @@ def compose(c):
                     'volumes': [bind(c['apps_root'] + '/docker/appdata/adguard/work', '/opt/adguardhome/work'),
                                 bind(c['apps_root'] + '/docker/appdata/adguard/conf', '/opt/adguardhome/conf')]}
     }}
+
+
+    if c.get('usb_hotplug', False):
+        result['services']['plex']['volumes'][-1] = {
+            'type': 'bind', 'source': c['usb_parent'], 'target': '/media-usb',
+            'read_only': True, 'bind': {'create_host_path': False, 'propagation': 'rslave'}}
+    if not c.get('adguard_enabled', True):
+        result['services']['adguard'].update(restart='no', profiles=['parked'])
+    return result
 
 
 if __name__ == '__main__':
