@@ -63,6 +63,8 @@ class NetworkTests(unittest.TestCase):
         self.assertIn('setInterval(refresh,5000)', markup)
         self.assertNotIn('location.reload', markup)
         self.assertEqual(markup.count('<form data-action='), 4)
+        self.assertIn('Local network · 192.0.2.10', markup)
+        self.assertIn('Tailscale · nas.example.ts.net', n.page({'Host': 'nas.example.ts.net:8443'}))
 
     def test_backup_failure_is_warning_not_check_override(self):
         with patch.object(n.m, 'backup_ready', side_effect=RuntimeError('No backup')), \

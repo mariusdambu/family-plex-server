@@ -102,7 +102,7 @@ def external_icon(kind):
         graphic = '''<rect x="113" y="12" width="94" height="106" rx="13" fill="#edf6f6" stroke="#157c7b" stroke-width="3"/>
 <circle cx="160" cy="43" r="13" fill="#157c7b"/><path d="M137 75q23-26 46 0" fill="#157c7b"/>
 <path d="M135 88h50m-50 13h36" stroke="#6a8f9a" stroke-width="4" stroke-linecap="round"/>
-<text x="160" y="149" text-anchor="middle" fill="#17354d" font-size="25" font-weight="750">Marius Dambu</text>
+<text x="160" y="149" text-anchor="middle" fill="#17354d" font-size="25" font-weight="750">Curriculum Vitae</text>
 <text x="160" y="172" text-anchor="middle" fill="#526375" font-size="16">CV</text>'''
     return '<svg class="external-logo" viewBox="0 0 320 185" aria-hidden="true" style="font-family:system-ui,sans-serif">' + graphic + '</svg>'
 

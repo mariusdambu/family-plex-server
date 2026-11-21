@@ -53,7 +53,7 @@ subprocess.run(['omv-rpc', '-u', 'admin', 'Config', 'applyChanges',
 subprocess.run(['systemctl', 'daemon-reload'], check=True)
 ```
 
-Review/apply any dependent monitoring or quota changes in OMV separately; do not clear pending flags by hand or apply unrelated changes blindly. The reference does not run this enrollment example automatically. Verify exactly one mount, the expected UUID and filesystem with `findmnt -M YOUR_CHILD_PATH`.
+Review/apply any dependent monitoring or quota changes in OMV separately; do not clear pending flags by hand or apply unrelated changes blindly. The reference does not run this enrollment example automatically. Verify exactly one mount, the expected UUID and filesystem with `findmnt -M YOUR_CHILD_PATH`. If OMV deploys Monit mountpoint checks for optional removable USB filesystems (such as `mountpoint_srv_family-plex-usb_disk`), any helper unit bound to `monit.service` that calls `monit unmonitor` should wait for `/run/monit.sock` (up to Monit's configured `start delay`, typically 30–45 seconds) so cold-boot or reload races do not leave an intentionally unplugged USB disk monitored.
 
 Create `Movies` and `Kids` only **on the verified mounted disk**, preserving existing content. For ext4 grant the configured Plex UID read/traverse access through the existing ACL policy. exFAT mount options above expose files owned by root with read/traverse permissions for non-root Plex; do not expect per-file Linux ACLs. A read-only Docker bind alone is not a guarantee that future propagated submounts are read-only: verify effective Plex-user write denial as well.
 

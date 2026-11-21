@@ -60,7 +60,7 @@ def page(headers):
 <button disabled>{html.escape(label)}</button></form>'''
                     for action, label in zip(m.ACTIONS, labels))
     host = headers.get('Host', '').split(':')[0]
-    mode = 'Tailscale' if host.startswith('100.') else ('Local network' if spanish else 'Local network')
+    mode = 'Tailscale' if host.startswith('100.') or host.endswith('.ts.net') else ('Local network' if spanish else 'Local network')
     text = ('Trusted LAN/Tailscale access, without an OMV session. Status updates every five seconds.'
             if spanish else 'Trusted LAN/Tailscale access, without OMV sign-in. Status updates every 5 seconds.')
     return '''<!doctype html><html><meta charset="utf-8"><meta name="viewport" content="width=device-width">

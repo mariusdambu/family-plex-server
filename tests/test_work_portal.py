@@ -109,6 +109,7 @@ class WorkPortalTests(unittest.TestCase):
         cards = w.external_cards(self.root)
         self.assertEqual(cards.count('class="card"'), 3)
         self.assertEqual(cards.count('<svg '), 3)
+        self.assertIn('Curriculum Vitae', cards)
         self.assertIn('rel="noopener noreferrer"', cards)
 
     def test_unsafe_external_links_are_rejected(self):
